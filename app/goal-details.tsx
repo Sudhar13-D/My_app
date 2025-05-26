@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,42 +10,40 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useGlobalSearchParams } from 'expo-router';
-
-export interface Milestone {
+interface Milestone {
   id: string;
   name: string;
   duration: number;
 }
-
-export interface Goal {
+interface Goal {
   id: string;
   goal: string;
   duration: number;
   milestones: Milestone[];
 }
 
+
 export default function GoalDetailsScreen() {
+  
   const { goalData } = useGlobalSearchParams();
   const router = useRouter();
 
   // Parse goalData safely, fallback to null if invalid or absent
-  let initialGoal = null;
-  if (goalData) {
-    let dataString = '';
-    if (Array.isArray(goalData)) {
-      dataString = goalData[0];
-    } else {
-      dataString = goalData;
-    }
+    let initialGoal = null;
+if (goalData) {
+  let dataString = '';
+  if (Array.isArray(goalData)) {
+    dataString = goalData[0];
+  } else {
+    dataString = goalData;
+  }
     try {
       initialGoal = JSON.parse(decodeURIComponent(dataString));
     } catch {
       initialGoal = null;
     }
   }
-
-  // Generate id: existing for editing, or new for creation
-  const goalId = initialGoal?.id || `g${Date.now()}`;
+  
 
   const [goalName, setGoalName] = useState(initialGoal?.goal || '');
   const [duration, setDuration] = useState(initialGoal?.duration?.toString() || '');
@@ -53,27 +51,8 @@ export default function GoalDetailsScreen() {
   const [newMilestoneName, setNewMilestoneName] = useState('');
   const [newMilestoneDuration, setNewMilestoneDuration] = useState('');
 
-  // Load saved goal from AsyncStorage on mount to ensure latest data
-  useEffect(() => {
-    async function loadGoalFromStorage() {
-      try {
-        const storedGoals = await AsyncStorage.getItem('customGoals');
-        const goals: Goal[] = storedGoals ? JSON.parse(storedGoals) : [];
-
-        const existingGoal = goals.find(g => g.id === goalId);
-
-        if (existingGoal) {
-          setGoalName(existingGoal.goal);
-          setDuration(existingGoal.duration.toString());
-          setMilestones(existingGoal.milestones);
-        }
-      } catch (error) {
-        console.error('Failed to load goals from storage:', error);
-      }
-    }
-
-    loadGoalFromStorage();
-  }, [goalId]);
+  // Generate id: existing for editing, or new for creation
+  const goalId = initialGoal?.id || `g${Date.now()}`;
 
   function addMilestone() {
     if (!newMilestoneName.trim() || !newMilestoneDuration.trim()) {
@@ -111,7 +90,8 @@ export default function GoalDetailsScreen() {
 
     try {
       const existing = await AsyncStorage.getItem('customGoals');
-      const goals: Goal[] = existing ? JSON.parse(existing) : [];
+const goals: Goal[] = existing ? JSON.parse(existing) : [];
+
 
       const goalIndex = goals.findIndex((g) => g.id === goalId);
 
@@ -139,22 +119,9 @@ export default function GoalDetailsScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>{initialGoal ? 'Edit Goal' : 'Create New Goal'}</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Goal Name"
-        value={goalName}
-        onChangeText={setGoalName}
-      />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Duration (days)"
-        keyboardType="numeric"
-        value={duration}
-        onChangeText={setDuration}
-      />
+  
 
       <Text style={styles.subHeading}>Milestones</Text>
       <FlatList

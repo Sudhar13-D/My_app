@@ -20,6 +20,7 @@ const { width } = Dimensions.get('window');
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function Index() {
+  const [userName, setUserName] = useState<string>('');
   const { theme } = useContext(ThemeContext);
   const isDark = theme === 'dark';
 
@@ -29,6 +30,14 @@ export default function Index() {
 
   const QUOTE_KEY = 'quotekey';
   const QUOTE_TIME_KEY = 'quotetimekey';
+
+  useEffect(() => {
+    const loadName = async () => {
+      const storedName = await AsyncStorage.getItem('userName');
+      if (storedName) setUserName(storedName);
+    };
+    loadName();
+  }, []);
 
   useEffect(() => {
     const loadQuote = async () => {
@@ -93,6 +102,8 @@ export default function Index() {
           Do's & Dont App
         </Text>
 
+         <Text style={styles.greeting}>Hi {userName || 'there'}!!</Text>
+
         <TextInput
           style={[
             styles.motivQuoteContainer,
@@ -129,7 +140,7 @@ export default function Index() {
             </TouchableOpacity>
           </Link>
 
-          <Link href="../goal" asChild>
+          <Link href="../GoalListScreen" asChild>
             <TouchableOpacity style={styles.button3}>
               <Text style={styles.buttonText}>Goal</Text>
             </TouchableOpacity>
@@ -161,6 +172,12 @@ const styles = StyleSheet.create({
     left: 10,
     padding: 8,
     zIndex: 10,
+  },
+    greeting: {
+    textAlign: 'center',
+    fontSize: 20,
+    marginTop: 10,
+    fontWeight: '600',
   },
   motivQuoteContainer: {
     marginTop: 30,

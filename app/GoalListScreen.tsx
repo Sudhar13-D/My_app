@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, {useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
+
 
 const predefinedGoals = [
   {
@@ -24,12 +26,15 @@ export default function GoalListScreen() {
   const [customGoals, setCustomGoals] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+ useFocusEffect(
+  React.useCallback(() => {
     async function loadCustomGoals() {
       try {
         const savedGoals = await AsyncStorage.getItem('customGoals');
         if (savedGoals) {
           setCustomGoals(JSON.parse(savedGoals));
+        } else {
+          setCustomGoals([]);
         }
       } catch (e) {
         console.error('Failed to load custom goals', e);
@@ -38,7 +43,9 @@ export default function GoalListScreen() {
       }
     }
     loadCustomGoals();
-  }, []);
+  }, [])
+);
+ 
 
   const allGoals = [...customGoals, ...predefinedGoals];
 

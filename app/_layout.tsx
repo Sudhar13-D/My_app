@@ -27,7 +27,7 @@ export default function RootLayout() {
         <Stack.Screen name="DoDont" options={{ title: "Do's and Don'ts" }} />
         <Stack.Screen name="DoList" options={{ title: "Do List" }} />
         <Stack.Screen name="DontList" options={{ title: "Don't List" }} />
-        <Stack.Screen name="goal" options={{ title: "Goal" }} />
+        <Stack.Screen name="GoalListScreen" options={{ title: "GoalListScreen" }} />
         <Stack.Screen name="journal" options={{ title: "Journal" }} />
         <Stack.Screen name="HabitTracker" options={{ title: "Habit Tracker" }} />
         <Stack.Screen name="log" options={{ title: "Log" }} />
