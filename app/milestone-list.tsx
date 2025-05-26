@@ -18,34 +18,36 @@ type Milestone = {
   duration: number; // duration in days
 };
 
-const STORAGE_KEY = '@milestones_storage_key';
-const START_DATE_KEY = '@milestones_start_date';
-
 export default function MilestoneListScreen() {
   const { goalData } = useGlobalSearchParams();
   const goalDataString = Array.isArray(goalData) ? goalData[0] : goalData;
   const goal = goalDataString ? JSON.parse(decodeURIComponent(goalDataString)) : null;
 
+  const milestoneStorageKey = goal ? `@milestones_${goal.goal}` : null;
+  const startDateStorageKey = goal ? `@startdate_${goal.goal}` : null;
+
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [newMilestoneName, setNewMilestoneName] = useState('');
   const [newMilestoneDuration, setNewMilestoneDuration] = useState('');
-  const [startDate, setStartDate] = useState<number | null>(null); // timestamp in ms
+  const [startDate, setStartDate] = useState<number | null>(null);
 
-  // Load milestones and startDate from AsyncStorage or fallback to goal.milestones
+  // Load milestones and startDate for this specific goal
   useEffect(() => {
     async function loadData() {
       try {
-        const storedMilestones = await AsyncStorage.getItem(STORAGE_KEY);
-        const storedStartDate = await AsyncStorage.getItem(START_DATE_KEY);
+        if (milestoneStorageKey && startDateStorageKey) {
+          const storedMilestones = await AsyncStorage.getItem(milestoneStorageKey);
+          const storedStartDate = await AsyncStorage.getItem(startDateStorageKey);
 
-        if (storedMilestones) {
-          setMilestones(JSON.parse(storedMilestones));
-        } else if (goal?.milestones) {
-          setMilestones(goal.milestones);
-        }
+          if (storedMilestones) {
+            setMilestones(JSON.parse(storedMilestones));
+          } else if (goal?.milestones) {
+            setMilestones(goal.milestones);
+          }
 
-        if (storedStartDate) {
-          setStartDate(parseInt(storedStartDate, 10));
+          if (storedStartDate) {
+            setStartDate(parseInt(storedStartDate, 10));
+          }
         }
       } catch (e) {
         console.error('Failed to load data', e);
@@ -53,13 +55,15 @@ export default function MilestoneListScreen() {
       }
     }
     loadData();
-  }, []);
+  }, [milestoneStorageKey, startDateStorageKey]);
 
-  // Save milestones whenever they change
+  // Save milestones
   useEffect(() => {
     async function saveMilestones() {
       try {
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(milestones));
+        if (milestoneStorageKey) {
+          await AsyncStorage.setItem(milestoneStorageKey, JSON.stringify(milestones));
+        }
       } catch (e) {
         console.error('Failed to save milestones', e);
       }
@@ -67,15 +71,15 @@ export default function MilestoneListScreen() {
     saveMilestones();
   }, [milestones]);
 
-  // Save startDate whenever it changes
+  // Save startDate
   useEffect(() => {
     async function saveStartDate() {
-      if (startDate !== null) {
-        try {
-          await AsyncStorage.setItem(START_DATE_KEY, startDate.toString());
-        } catch (e) {
-          console.error('Failed to save start date', e);
+      try {
+        if (startDateStorageKey && startDate !== null) {
+          await AsyncStorage.setItem(startDateStorageKey, startDate.toString());
         }
+      } catch (e) {
+        console.error('Failed to save start date', e);
       }
     }
     saveStartDate();
@@ -109,17 +113,15 @@ export default function MilestoneListScreen() {
     setNewMilestoneDuration('');
   }
 
-  // Calculate how many days have passed since startDate
   function getElapsedDays(): number {
     if (!startDate) return 0;
     const now = Date.now();
     const diff = now - startDate;
-    return Math.floor(diff / (1000 * 60 * 60 * 24)); // convert ms to days
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
   }
 
-  // Determine if a milestone is unlocked by summing durations of all previous milestones
   function isUnlocked(index: number): boolean {
-    if (index === 0) return true; // first milestone always unlocked
+    if (index === 0) return true;
     const elapsed = getElapsedDays();
     const durationSum = milestones
       .slice(0, index)
@@ -127,25 +129,10 @@ export default function MilestoneListScreen() {
     return elapsed >= durationSum;
   }
 
-  // Start progress on first milestone if not started yet
   function startProgressIfNeeded() {
     if (!startDate && milestones.length > 0) {
       setStartDate(Date.now());
     }
-  }
-
-  // Handler for milestone press
-  function onMilestonePress(item: Milestone, index: number) {
-    if (!isUnlocked(index)) {
-      Alert.alert('Locked', 'This milestone is locked until previous milestones are complete.');
-      return;
-    }
-    if (!startDate) {
-      startProgressIfNeeded();
-    }
-    // Navigate manually using Link or router
-    // Since you're using expo-router, one option is:
-    // But in this example, let's just use Link with asChild.
   }
 
   return (
@@ -161,7 +148,6 @@ export default function MilestoneListScreen() {
           const encodedGoal = encodeURIComponent(JSON.stringify({ ...goal, milestones }));
 
           if (unlocked) {
-            // If unlocked, wrap TouchableOpacity in Link for navigation
             return (
               <Link
                 href={{
@@ -171,19 +157,17 @@ export default function MilestoneListScreen() {
                 asChild
               >
                 <TouchableOpacity
-                 style={[styles.unlockedMilestoneCard, styles.unlockedMilestone]}
-
+                  style={[styles.unlockedMilestoneCard, styles.unlockedMilestone]}
                   onPress={() => {
                     if (!startDate) startProgressIfNeeded();
                   }}
                 >
                   <Text style={[styles.milestoneTitle, styles.lockedText1]}>{item.name}</Text>
-                <Text style={[styles.milestoneDuration, styles.lockedText1]}>{item.duration} days</Text>
+                  <Text style={[styles.milestoneDuration, styles.lockedText1]}>{item.duration} days</Text>
                 </TouchableOpacity>
               </Link>
             );
           } else {
-            // Locked milestone, just show greyed out card and show alert on press
             return (
               <TouchableOpacity
                 style={[styles.milestoneCard, styles.lockedMilestone]}
@@ -240,9 +224,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
   },
-  lockedMilestone2: {
-    backgroundColor: 'sky blue',
-  },
   lockedMilestone: {
     backgroundColor: '#ddd',
   },
@@ -258,20 +239,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   lockedText1: { color: 'black' },
-
   unlockedMilestone: {
-  backgroundColor: '#fff',
-},
-unlockedMilestoneCard: {
-  backgroundColor: 'blue',
-  borderWidth: 1,
-  borderColor: '#ccc',
-  shadowColor: '#0003',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.2,
-  shadowRadius: 4,
-},
-
-
-
+    backgroundColor: '#fff',
+  },
+  unlockedMilestoneCard: {
+    backgroundColor: 'blue',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    shadowColor: '#0003',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
 });
